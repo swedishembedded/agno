@@ -42,6 +42,13 @@ class ModelResponse:
 
     extra: Optional[Dict[str, Any]] = None
 
+    # Whether to stop after this tool call
+    tool_call_id: Optional[str] = None
+    tool_name: Optional[str] = None
+    tool_args: Optional[Dict[str, Any]] = None
+    output: Optional[str] = None
+    stop_after_tool_call: bool = False
+
 
 class FileType(str, Enum):
     MP4 = "mp4"

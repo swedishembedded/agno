@@ -1,9 +1,21 @@
 import asyncio
 import collections.abc
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from types import AsyncGeneratorType, GeneratorType
-from typing import Any, AsyncGenerator, AsyncIterator, Dict, Iterator, List, Literal, Optional, Tuple, Union
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 from uuid import uuid4
 
 from agno.exceptions import AgentRunException
@@ -191,7 +203,8 @@ class Model(ABC):
 
                 # Execute function calls
                 for function_call_response in self.run_function_calls(
-                    function_calls=function_calls_to_run, function_call_results=function_call_results
+                    function_calls=function_calls_to_run,
+                    function_call_results=function_call_results,
                 ):
                     if (
                         function_call_response.event == ModelResponseEvent.tool_call_completed.value
@@ -207,7 +220,9 @@ class Model(ABC):
 
                 # Format and add results to messages
                 self.format_function_call_results(
-                    messages=messages, function_call_results=function_call_results, **model_response.extra or {}
+                    messages=messages,
+                    function_call_results=function_call_results,
+                    **model_response.extra or {},
                 )
                 for function_call_result in function_call_results:
                     function_call_result.log(metrics=True)
@@ -260,7 +275,8 @@ class Model(ABC):
 
                 # Execute function calls
                 async for function_call_response in self.arun_function_calls(
-                    function_calls=function_calls_to_run, function_call_results=function_call_results
+                    function_calls=function_calls_to_run,
+                    function_call_results=function_call_results,
                 ):
                     if (
                         function_call_response.event == ModelResponseEvent.tool_call_completed.value
@@ -276,7 +292,9 @@ class Model(ABC):
 
                 # Format and add results to messages
                 self.format_function_call_results(
-                    messages=messages, function_call_results=function_call_results, **model_response.extra or {}
+                    messages=messages,
+                    function_call_results=function_call_results,
+                    **model_response.extra or {},
                 )
                 for function_call_result in function_call_results:
                     function_call_result.log(metrics=True)
@@ -468,13 +486,17 @@ class Model(ABC):
         # Add usage metrics if provided
         if provider_response.response_usage is not None:
             self._add_usage_metrics_to_assistant_message(
-                assistant_message=assistant_message, response_usage=provider_response.response_usage
+                assistant_message=assistant_message,
+                response_usage=provider_response.response_usage,
             )
 
         return assistant_message
 
     def process_response_stream(
-        self, messages: List[Message], assistant_message: Message, stream_data: MessageData
+        self,
+        messages: List[Message],
+        assistant_message: Message,
+        stream_data: MessageData,
     ) -> Iterator[ModelResponse]:
         """
         Process a streaming response from the model.
@@ -482,7 +504,9 @@ class Model(ABC):
         for response_delta in self.invoke_stream(messages=messages):
             model_response_delta = self.parse_provider_response_delta(response_delta)
             yield from self._populate_stream_data_and_assistant_message(
-                stream_data=stream_data, assistant_message=assistant_message, model_response=model_response_delta
+                stream_data=stream_data,
+                assistant_message=assistant_message,
+                model_response=model_response_delta,
             )
 
     def response_stream(self, messages: List[Message]) -> Iterator[ModelResponse]:
@@ -508,7 +532,9 @@ class Model(ABC):
             # Generate response
             assistant_message.metrics.start_timer()
             yield from self.process_response_stream(
-                messages=messages, assistant_message=assistant_message, stream_data=stream_data
+                messages=messages,
+                assistant_message=assistant_message,
+                stream_data=stream_data,
             )
             assistant_message.metrics.stop_timer()
 
@@ -540,14 +566,17 @@ class Model(ABC):
 
                 # Execute function calls
                 for function_call_response in self.run_function_calls(
-                    function_calls=function_calls_to_run, function_call_results=function_call_results
+                    function_calls=function_calls_to_run,
+                    function_call_results=function_call_results,
                 ):
                     yield function_call_response
 
                 # Format and add results to messages
                 if stream_data.extra is not None:
                     self.format_function_call_results(
-                        messages=messages, function_call_results=function_call_results, **stream_data.extra
+                        messages=messages,
+                        function_call_results=function_call_results,
+                        **stream_data.extra,
                     )
                 else:
                     self.format_function_call_results(messages=messages, function_call_results=function_call_results)
@@ -568,7 +597,10 @@ class Model(ABC):
         log_debug(f"{self.get_provider()} Response Stream End", center=True, symbol="-")
 
     async def aprocess_response_stream(
-        self, messages: List[Message], assistant_message: Message, stream_data: MessageData
+        self,
+        messages: List[Message],
+        assistant_message: Message,
+        stream_data: MessageData,
     ) -> AsyncIterator[ModelResponse]:
         """
         Process a streaming response from the model.
@@ -576,7 +608,9 @@ class Model(ABC):
         async for response_delta in self.ainvoke_stream(messages=messages):  # type: ignore
             model_response_delta = self.parse_provider_response_delta(response_delta)
             for model_response in self._populate_stream_data_and_assistant_message(
-                stream_data=stream_data, assistant_message=assistant_message, model_response=model_response_delta
+                stream_data=stream_data,
+                assistant_message=assistant_message,
+                model_response=model_response_delta,
             ):
                 yield model_response
 
@@ -591,7 +625,11 @@ class Model(ABC):
             AsyncIterator[ModelResponse]: Async iterator of model responses
         """
 
-        log_debug(f"{self.get_provider()} Async Response Stream Start", center=True, symbol="-")
+        log_debug(
+            f"{self.get_provider()} Async Response Stream Start",
+            center=True,
+            symbol="-",
+        )
         log_debug(f"Model: {self.id}", center=True, symbol="-")
         self._log_messages(messages)
 
@@ -603,7 +641,9 @@ class Model(ABC):
             # Generate response
             assistant_message.metrics.start_timer()
             async for response in self.aprocess_response_stream(
-                messages=messages, assistant_message=assistant_message, stream_data=stream_data
+                messages=messages,
+                assistant_message=assistant_message,
+                stream_data=stream_data,
             ):
                 yield response
             assistant_message.metrics.stop_timer()
@@ -634,14 +674,17 @@ class Model(ABC):
 
                 # Execute function calls
                 async for function_call_response in self.arun_function_calls(
-                    function_calls=function_calls_to_run, function_call_results=function_call_results
+                    function_calls=function_calls_to_run,
+                    function_call_results=function_call_results,
                 ):
                     yield function_call_response
 
                 # Format and add results to messages
                 if stream_data.extra is not None:
                     self.format_function_call_results(
-                        messages=messages, function_call_results=function_call_results, **stream_data.extra
+                        messages=messages,
+                        function_call_results=function_call_results,
+                        **stream_data.extra,
                     )
                 else:
                     self.format_function_call_results(messages=messages, function_call_results=function_call_results)
@@ -662,7 +705,10 @@ class Model(ABC):
         log_debug(f"{self.get_provider()} Async Response Stream End", center=True, symbol="-")
 
     def _populate_stream_data_and_assistant_message(
-        self, stream_data: MessageData, assistant_message: Message, model_response: ModelResponse
+        self,
+        stream_data: MessageData,
+        assistant_message: Message,
+        model_response: ModelResponse,
     ) -> Iterator[ModelResponse]:
         """Update the stream data and assistant message with the model response."""
 
@@ -735,7 +781,8 @@ class Model(ABC):
 
         if model_response.response_usage is not None:
             self._add_usage_metrics_to_assistant_message(
-                assistant_message=assistant_message, response_usage=model_response.response_usage
+                assistant_message=assistant_message,
+                response_usage=model_response.response_usage,
             )
 
         if should_yield:
@@ -748,7 +795,10 @@ class Model(ABC):
         return tool_calls_data
 
     def get_function_calls_to_run(
-        self, assistant_message: Message, messages: List[Message], error_response_role: str = "user"
+        self,
+        assistant_message: Message,
+        messages: List[Message],
+        error_response_role: str = "user",
     ) -> List[FunctionCall]:
         """
         Prepare function calls for the assistant message.
@@ -766,11 +816,20 @@ class Model(ABC):
                 _tool_call_id = tool_call.get("id")
                 _function_call = get_function_call_for_tool_call(tool_call, self._functions)
                 if _function_call is None:
-                    messages.append(Message(role=error_response_role, content="Could not find function to call."))
+                    messages.append(
+                        Message(
+                            role=error_response_role,
+                            content="Could not find function to call.",
+                        )
+                    )
                     continue
                 if _function_call.error is not None:
                     messages.append(
-                        Message(role=error_response_role, tool_call_id=_tool_call_id, content=_function_call.error)
+                        Message(
+                            role=error_response_role,
+                            tool_call_id=_tool_call_id,
+                            content=_function_call.error,
+                        )
                     )
                     continue
                 function_calls_to_run.append(_function_call)
@@ -809,7 +868,11 @@ class Model(ABC):
                 m.stop_after_tool_call = True
 
     def _create_function_call_result(
-        self, fc: FunctionCall, success: bool, output: Optional[Union[List[Any], str]], timer: Timer
+        self,
+        fc: FunctionCall,
+        success: bool,
+        output: Optional[Union[List[Any], str]],
+        timer: Timer,
     ) -> Message:
         """Create a function call result message."""
         return Message(
@@ -831,6 +894,8 @@ class Model(ABC):
 
         # Additional messages from function calls that will be added to the function call results
         additional_messages: List[Message] = []
+        # Flag to track if any function has stop_after_tool_call set
+        stop_after_tool_call = False
 
         for fc in function_calls:
             # Start function call
@@ -849,6 +914,10 @@ class Model(ABC):
                 ],
                 event=ModelResponseEvent.tool_call_started.value,
             )
+
+            # Check if this function should stop after tool call
+            if fc.function.stop_after_tool_call:
+                stop_after_tool_call = True
 
             # Track if the function call was successful
             function_call_success = False
@@ -888,6 +957,7 @@ class Model(ABC):
                 content=f"{fc.get_call_str()} completed in {function_call_timer.elapsed:.4f}s.",
                 tool_calls=[function_call_result.to_function_call_dict()],
                 event=ModelResponseEvent.tool_call_completed.value,
+                stop_after_tool_call=fc.function.stop_after_tool_call,
             )
 
             # Add function call to function call results
@@ -903,6 +973,11 @@ class Model(ABC):
         # Add any additional messages at the end
         if additional_messages:
             function_call_results.extend(additional_messages)
+
+        # Set stop_after_tool_call flag on all function call results if any function has it set
+        if stop_after_tool_call:
+            for msg in function_call_results:
+                msg.stop_after_tool_call = True
 
     async def _arun_function_call(
         self, function_call: FunctionCall
@@ -938,6 +1013,8 @@ class Model(ABC):
 
         # Additional messages from function calls that will be added to the function call results
         additional_messages: List[Message] = []
+        # Flag to track if any function has stop_after_tool_call set
+        stop_after_tool_call = False
 
         # Yield tool_call_started events for all function calls
         for fc in function_calls:
@@ -955,7 +1032,10 @@ class Model(ABC):
             )
 
         # Create and run all function calls in parallel
-        results = await asyncio.gather(*(self._arun_function_call(fc) for fc in function_calls), return_exceptions=True)
+        results = await asyncio.gather(
+            *(self._arun_function_call(fc) for fc in function_calls),
+            return_exceptions=True,
+        )
 
         # Process results
         for result in results:
@@ -966,6 +1046,10 @@ class Model(ABC):
 
             # Unpack result
             function_call_success, function_call_timer, fc = result
+
+            # Check if this function should stop after tool call
+            if fc.function.stop_after_tool_call:
+                stop_after_tool_call = True
 
             # Handle AgentRunException
             if isinstance(function_call_success, AgentRunException):
@@ -1000,6 +1084,7 @@ class Model(ABC):
                 content=f"{fc.get_call_str()} completed in {function_call_timer.elapsed:.4f}s.",
                 tool_calls=[function_call_result.to_function_call_dict()],
                 event=ModelResponseEvent.tool_call_completed.value,
+                stop_after_tool_call=fc.function.stop_after_tool_call,
             )
 
             # Add function call result to function call results
@@ -1014,6 +1099,11 @@ class Model(ABC):
         # Add any additional messages at the end
         if additional_messages:
             function_call_results.extend(additional_messages)
+
+        # Set stop_after_tool_call flag on all function call results if any function has it set
+        if stop_after_tool_call:
+            for msg in function_call_results:
+                msg.stop_after_tool_call = True
 
     def _prepare_function_calls(
         self,
