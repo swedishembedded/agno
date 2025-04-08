@@ -24,7 +24,9 @@ class ThinkingTools(Toolkit):
         if instructions is None:
             self.instructions = dedent("""\
             ## Using the think tool
-            Before taking any action or responding to the user after receiving tool results, use the think tool as a scratchpad to:
+            Before taking any action or responding to the user after receiving
+            tool results, use the think tool as a scratchpad to:
+
             - List the specific rules that apply to the current request
             - Check if all required information is collected
             - Verify that the planned action complies with all policies
@@ -39,9 +41,26 @@ class ThinkingTools(Toolkit):
             self.register(self.think)
 
     def think(self, agent: Agent, thought: str) -> str:
-        """Use the tool to think about something.
-        It will not obtain new information or take any actions, but just append the thought to the log and return the result.
-        Use it when complex reasoning or some cache memory or a scratchpad is needed.
+        """
+        Use the tool to think about something. It will not obtain new information or
+        make any changes to the repository, but just log the thought. Use it when
+        complex reasoning or brainstorming is needed.
+
+        Common use cases:
+        1. When exploring a repository and discovering the source of a bug, call this
+        tool to brainstorm several unique ways of fixing the bug, and assess which
+        change(s) are likely to be simplest and most effective
+        2. After receiving test results, use this tool to brainstorm ways to fix failing
+        tests
+        3. When planning a complex refactoring, use this tool to outline different
+        approaches and their tradeoffs
+        4. When designing a new feature, use this tool to think through architecture
+        decisions and implementation details
+        5. When debugging a complex issue, use this tool to organize your thoughts and
+        hypotheses
+
+        The tool simply logs your thought process for better transparency and does not
+        execute any code or make changes.
 
         :param thought: A thought to think about and log.
         :return: The full log of thoughts and the new thought.
