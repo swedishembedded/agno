@@ -11,6 +11,7 @@
 *.ruff_cache
 *.cache*
 *.config*
+__editable__.*
 
 # Machine specific
 .idea
