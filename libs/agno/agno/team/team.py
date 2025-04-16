@@ -40,6 +40,7 @@ from agno.run.team import TeamRunResponse
 from agno.storage.base import Storage
 from agno.storage.session.team import TeamSession
 from agno.tools.toolkit import Toolkit
+from agno.tools.function import Function
 from agno.utils.log import (
     log_debug,
     log_error,
